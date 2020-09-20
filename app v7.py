@@ -300,7 +300,6 @@ class Test(MDApp):
             self.sce = d[self.ij][3]
             self.num = d[self.ij][4]
             self.pb.value = self.sce + self.addit
-            print("before value is", self.pb.value)
             self.pb.max = self.sce
             self.event = Clock.schedule_interval(self.pop, 1)
 
