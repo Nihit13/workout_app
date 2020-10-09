@@ -6,17 +6,14 @@ from kivymd.uix.list import IconLeftWidget,IconRightWidget
 from kivymd.uix.progressbar import MDProgressBar
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
-from kivymd.uix.dialog import MDDialog
 import sqlite3
-from ast import literal_eval
-from kivymd.uix.button import MDRoundImageButton,MDFlatButton
-import weakref
-from kivy.properties import  ObjectProperty
 mydb = sqlite3.connect("app2.db")
 
 
 c = mydb.cursor()
+from kivy.core.audio import SoundLoader
 
+sound = SoundLoader.load('point.wav')
 jump = False
 KV = '''
 ScreenManager:
@@ -127,6 +124,7 @@ class SquentialTimer(MDApp):
         self.ij = 0
         self.secondtime = True
         self.iter = 0
+        self.iteration = 0
         for i in range(23):
             self.items = OneLineListItem(text=str(i + 1), size_hint=(0.3, 0.5), on_release=lambda x: self.callbacker(x))
             self.help.ids.box.add_widget(self.items)
@@ -232,18 +230,8 @@ class SquentialTimer(MDApp):
         mydb.commit()
         self.oneiter = True
 
-    def screen3(self):
-        c.execute("SELECT * FROM timer ORDER BY number DESC LIMIT 1 ")
-        for i in c:
-            self.extracted_second = i[3]
-            self.extracted_minute = i[2]
-            self.added = self.extracted_minute * 60
-        self.bar.max = self.extracted_second + self.added
-        self.bar.value = self.extracted_second + self.added
-        self.event = Clock.schedule_interval(self.pop, 1)
 
     def pop(self, *args):
-
         c.execute("SELECT * FROM timer ORDER BY number ASC  ")
         e = c.fetchall()
         self.pro = self.pro - 1
@@ -254,9 +242,12 @@ class SquentialTimer(MDApp):
             self.ij += 1
             if self.ij != r[0][4]:
                 Clock.unschedule(self.event)
+                sound.play()
                 self.screeble4()
             elif self.ij == r[0][4]:
                 self.secondtime = False
+
+
 
     def load_list(self):
         c.execute("SELECT * FROM timer ORDER BY number DESC LIMIT 1 ")
@@ -286,7 +277,7 @@ class SquentialTimer(MDApp):
             self.bar = MDProgressBar(id="counter", max=t[3], value=t[3], size_hint=(0.7, 0),
                                      pos_hint={"center_x": 0.5, "center_y": 0.3})
             lists = ProgressList(text=t[0],
-                                 secondary_text=str(t[2]) + ":" + str(t[3]),
+                                 secondary_text=str(self.bar.value//60) + ":" + str(self.bar.value)+str(self.bar.value),
                                  tertiary_text=" ", bar=self.bar)
             self.help.ids.leep.add_widget(lists)
             image = IconLeftWidget(icon="plus")
@@ -295,13 +286,12 @@ class SquentialTimer(MDApp):
             lists.add_widget(self.image2)
             lists.add_widget(image)
             u += 1
-            #self.image2.bind(on_release=lambda x: self.delete_row(self.image2.parent.parent))
+
 
     def screeble4(self):
         c.execute("SELECT * FROM timer")
         d = c.fetchall()
         if self.secondtime == True:
-            """try :"""
             self.pb = eval(d[self.ij][5]).bar
             self.addit = d[self.ij][2] * 60
             self.sce = d[self.ij][3]
@@ -311,12 +301,33 @@ class SquentialTimer(MDApp):
             self.pro = d[self.ij][2]*60+d[self.ij][3]
             self.pb.value = self.pro
             self.event = Clock.schedule_interval(self.pop, 1)
-            """except:
-                self.dialog = MDDialog(text="You need to add some  timers to start the timer",buttons=[MDFlatButton(text="ok",on_release=self.close_dialog())])
-                self.dialog.open()"""
+        else:
+            c.execute("SELECT * FROM timer")
+            e = c.fetchall()
+            helpit = 0
+            for i in self.listitdown:
+                i.bar.value = e[helpit][2] * 60 + e[helpit][3]
+                i.bar.max = i.bar.value
+                self.secondtime = True
+                self.ij = 0
     def delete_row(self,row):
+        itere = 1
         self.root.ids.leep.remove_widget(row)
-
+        c.execute("DELETE FROM timer WHERE name=?", (row.text,))
+        mydb.commit()
+        for i in self.listitdown:
+            if i.text == row.text:
+                self.listitdown.remove(i)
+        for y in self.listitdown:
+            c.execute("UPDATE timer SET lists=? WHERE name=?",
+                      ("self.listitdown[" + str(self.iteration) + "]", y.text,))
+            c.execute("UPDATE timer SET  number=? WHERE name = ? ",(itere,y.text,))
+            itere +=1
+            self.ider = itere
+            mydb.commit()
+            self.iteration += 1
+        self.u = self.iteration
+        self.iteration = 0
 
 
 
